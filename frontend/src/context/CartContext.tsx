@@ -18,119 +18,91 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = "qr_ordering_cart";
 
+const getStoredCart = (): Cart => {
+  const stored = localStorage.getItem(CART_STORAGE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return { items: [], totalItems: 0, totalAmount: 0 };
+    }
+  }
+  return { items: [], totalItems: 0, totalAmount: 0 };
+};
+
+const calculateTotals = (
+  items: CartItem[],
+): Pick<Cart, "totalItems" | "totalAmount"> => {
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
+  return { totalItems, totalAmount };
+};
+
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [cart, setCart] = useState<Cart>(() => {
-    // Load cart from localStorage on init
-    const stored = localStorage.getItem(CART_STORAGE_KEY);
-    if (stored) {
-      try {
-        return JSON.parse(stored);
-      } catch {
-        return { items: [], totalItems: 0, totalAmount: 0 };
-      }
-    }
-    return { items: [], totalItems: 0, totalAmount: 0 };
-  });
-
+  const [cart, setCart] = useState<Cart>(getStoredCart);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
   }, [cart]);
 
-  const calculateTotals = (
-    items: CartItem[],
-  ): { totalItems: number; totalAmount: number } => {
-    const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-    const totalAmount = items.reduce((sum, item) => sum + item.subtotal, 0);
-    return { totalItems, totalAmount };
-  };
-
   const addToCart = (product: Product, quantity: number = 1) => {
-    const existingItemIndex = cart.items.findIndex(
-      (item) => item.product.id === product.id,
-    );
-
     setCart((prevCart) => {
-      let newItems: CartItem[];
+      const existingIndex = prevCart.items.findIndex(
+        (item) => item.product.id === product.id,
+      );
       const price = Number(product.price);
-      let isUpdate = false;
-      let updatedQuantity = quantity;
+      let newItems: CartItem[];
+      let message: string;
 
-      if (existingItemIndex > -1) {
+      if (existingIndex > -1) {
         // Update existing item
-        isUpdate = true;
-        newItems = [...prevCart.items];
-        const newQuantity = newItems[existingItemIndex].quantity + quantity;
-        updatedQuantity = newQuantity;
-        newItems[existingItemIndex] = {
-          ...newItems[existingItemIndex],
-          quantity: newQuantity,
-          subtotal: newQuantity * price,
-        };
+        newItems = prevCart.items.map((item, index) =>
+          index === existingIndex
+            ? {
+                ...item,
+                quantity: item.quantity + quantity,
+                subtotal: (item.quantity + quantity) * price,
+              }
+            : item,
+        );
+        message = `${product.name} quantity updated to ${newItems[existingIndex].quantity}`;
+        toast.success("Updated in cart", message, 3000);
       } else {
         // Add new item
-        const newItem: CartItem = {
-          product,
-          quantity,
-          subtotal: price * quantity,
-        };
-        newItems = [...prevCart.items, newItem];
+        newItems = [
+          ...prevCart.items,
+          { product, quantity, subtotal: price * quantity },
+        ];
+        message = `${quantity} × ${product.name}`;
+        toast.success("Added to cart", message, 3000);
       }
 
-      const { totalItems, totalAmount } = calculateTotals(newItems);
-
-      // Show toast notification after state update
-      setTimeout(() => {
-        if (isUpdate) {
-          toast.success(
-            "Updated in cart",
-            `${product.name} quantity updated to ${updatedQuantity}`,
-            3000,
-          );
-        } else {
-          toast.success("Added to cart", `${quantity} × ${product.name}`, 3000);
-        }
-      }, 0);
-
-      return {
-        items: newItems,
-        totalItems,
-        totalAmount,
-      };
+      return { items: newItems, ...calculateTotals(newItems) };
     });
   };
 
   const removeFromCart = (productId: number) => {
-    // Get product name before removing
-    const removedItem = cart.items.find(
-      (item) => item.product.id === productId,
-    );
-
     setCart((prevCart) => {
+      const removedItem = prevCart.items.find(
+        (item) => item.product.id === productId,
+      );
       const newItems = prevCart.items.filter(
         (item) => item.product.id !== productId,
       );
-      const { totalItems, totalAmount } = calculateTotals(newItems);
 
-      return {
-        items: newItems,
-        totalItems,
-        totalAmount,
-      };
+      if (removedItem) {
+        toast.info(
+          "Removed from cart",
+          `${removedItem.product.name} removed`,
+          3000,
+        );
+      }
+
+      return { items: newItems, ...calculateTotals(newItems) };
     });
-
-    // Show toast notification
-    if (removedItem) {
-      toast.info(
-        "Removed from cart",
-        `${removedItem.product.name} removed`,
-        3000,
-      );
-    }
   };
 
   const updateQuantity = (productId: number, quantity: number) => {
@@ -140,33 +112,23 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
     }
 
     setCart((prevCart) => {
-      const newItems = prevCart.items.map((item) => {
-        if (item.product.id === productId) {
-          return {
-            ...item,
-            quantity,
-            subtotal: Number(item.product.price) * quantity,
-          };
-        }
-        return item;
-      });
+      const newItems = prevCart.items.map((item) =>
+        item.product.id === productId
+          ? {
+              ...item,
+              quantity,
+              subtotal: Number(item.product.price) * quantity,
+            }
+          : item,
+      );
 
-      const { totalItems, totalAmount } = calculateTotals(newItems);
-
-      return {
-        items: newItems,
-        totalItems,
-        totalAmount,
-      };
+      return { items: newItems, ...calculateTotals(newItems) };
     });
   };
 
   const clearCart = () => {
     setCart({ items: [], totalItems: 0, totalAmount: 0 });
   };
-
-  const openCart = () => setIsCartOpen(true);
-  const closeCart = () => setIsCartOpen(false);
 
   return (
     <CartContext.Provider
@@ -177,8 +139,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         updateQuantity,
         clearCart,
         isCartOpen,
-        openCart,
-        closeCart,
+        openCart: () => setIsCartOpen(true),
+        closeCart: () => setIsCartOpen(false),
       }}
     >
       {children}
@@ -188,7 +150,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useCart must be used within a CartProvider");
   }
   return context;

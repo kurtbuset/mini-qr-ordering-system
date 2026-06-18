@@ -8,7 +8,7 @@ interface AuthState {
   account: Account | null;
   isLoading: boolean;
   isInitialized: boolean;
-  refreshTokenTimeout: number | null;
+  refreshTokenTimeout: ReturnType<typeof setTimeout> | null;  // return any type with whatever setTimeout returns
 }
 
 interface AuthActions {
@@ -70,6 +70,9 @@ export const useAuthStore = create<AuthStore>()(
                 get().logout();
               }
             }, timeout);
+
+
+            console.log(typeof timeoutId)
 
             set({ refreshTokenTimeout: timeoutId });
           }

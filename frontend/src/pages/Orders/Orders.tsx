@@ -8,10 +8,11 @@ import {
   OrderDetailModal,
 } from "../../components/order";
 import PageMeta from "../../components/common/PageMeta";
+import { useAuthStore } from "../../store/authStore";
 
 type OrderTypeFilter = "all" | "dine_in" | "takeout";
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -20,6 +21,7 @@ export default function Orders() {
   const [typeFilter, setTypeFilter] = useState<OrderTypeFilter>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const account = useAuthStore((state) => state.account);
 
   useEffect(() => {
     loadOrders();
@@ -29,7 +31,13 @@ export default function Orders() {
       transports: ["websocket", "polling"],
     });
 
-    // Listen for new orders
+    // Join admin room if user is admin
+    if (account && account.role === "Admin") {
+      socket.emit("joinAdminRoom", { role: account.role });
+      console.log("Joined admin room");
+    }
+
+    // Listen for new orders (only admins will receive this)
     socket.on("newOrder", (newOrder: Order) => {
       console.log("New order received:", newOrder);
       // Only add if it's a pending order
@@ -38,11 +46,34 @@ export default function Orders() {
       }
     });
 
+    // Listen for order updates (only admins will receive this)
+    socket.on("orderUpdated", (updatedOrder: Order) => {
+      console.log("Order updated:", updatedOrder);
+      setOrders((prevOrders) => {
+        // If order is no longer pending, remove it from the list
+        if (updatedOrder.order_status !== "pending") {
+          return prevOrders.filter((order) => order.id !== updatedOrder.id);
+        }
+        // Otherwise, update the order in the list
+        return prevOrders.map((order) =>
+          order.id === updatedOrder.id ? updatedOrder : order,
+        );
+      });
+
+      // Update selected order if it's currently open in modal
+      if (selectedOrder && selectedOrder.id === updatedOrder.id) {
+        setSelectedOrder(updatedOrder);
+      }
+    });
+
     // Cleanup on unmount
     return () => {
+      if (account && account.role === "Admin") {
+        socket.emit("leaveAdminRoom");
+      }
       socket.disconnect();
     };
-  }, []);
+  }, [account]);
 
   const loadOrders = async () => {
     try {
@@ -152,7 +183,7 @@ export default function Orders() {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white"> 
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
               Orders
             </h1>
             <p className="mt-2 text-gray-600 dark:text-gray-400">

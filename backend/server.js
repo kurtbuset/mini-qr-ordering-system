@@ -37,10 +37,22 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// allow cors requests from any origin and with credentials
+// CORS configuration - only allow requests from env.FRONTEND_URL
+const allowedOrigins = process.env.FRONTEND_URL;
+
 app.use(
   cors({
-    origin: (origin, callback) => callback(null, true),
+    origin: (origin, callback) => {
+      // Allow requests with no origin
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked request from origin: ${origin}`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );
@@ -66,6 +78,20 @@ app.use(errorHandler);
 // Socket.IO connection handling
 io.on("connection", (socket) => {
   console.log("Client connected:", socket.id);
+
+  // Join admin room when user authenticates
+  socket.on("joinAdminRoom", (data) => {
+    if (data.role === "Admin") {
+      socket.join("admin");
+      console.log(`Admin joined room: ${socket.id}`);
+    }
+  });
+
+  // Leave admin room
+  socket.on("leaveAdminRoom", () => {
+    socket.leave("admin");
+    console.log(`User left admin room: ${socket.id}`);
+  });
 
   socket.on("disconnect", () => {
     console.log("Client disconnected:", socket.id);

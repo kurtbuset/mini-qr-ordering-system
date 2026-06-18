@@ -40,11 +40,11 @@ function create(req, res, next) {
   orderService
     .create(req.body)
     .then((order) => {
-      // Emit new order event via Socket.IO
+      // Emit new order event via Socket.IO to Admin room only
       const io = req.app.get("io");
       if (io) {
-        io.emit("newOrder", order);
-        console.log("New order emitted:", order.id);
+        io.to("admin").emit("newOrder", order);
+        console.log("New order emitted to admin room:", order.id);
       }
       res.status(201).json(order);
     })
@@ -55,6 +55,14 @@ function create(req, res, next) {
 function update(req, res, next) {
   orderService
     .update(req.params.id, req.body)
-    .then((order) => res.json(order))
+    .then((order) => {
+      // Emit order update event via Socket.IO to Admin room only
+      const io = req.app.get("io");
+      if (io) {
+        io.to("admin").emit("orderUpdated", order);
+        console.log("Order update emitted to admin room:", order.id);
+      }
+      res.json(order);
+    })
     .catch(next);
 }
