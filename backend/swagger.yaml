@@ -10,6 +10,25 @@ info:
     - **Orders**: Create and manage orders with dine-in or takeout options
     - **Cart**: Client-side cart management with order submission
 
+    ## ⚠️ SECURITY WARNING - Payment Implementation
+    This system includes a **MOCK payment implementation for demonstration purposes only**.
+
+    ### Critical Security Issues:
+    - **NOT PCI-DSS COMPLIANT**: This implementation does not meet Payment Card Industry Data Security Standards
+    - **DO NOT USE WITH REAL CARD DATA**: Never use this system with actual credit/debit card information
+    - **MOCK DATA ONLY**: All payment processing is simulated and for testing purposes only
+
+    ### For Production Use:
+    Replace the mock payment system with a PCI-DSS compliant payment processor such as:
+    - Stripe (with Stripe Elements or Stripe Checkout)
+    - PayPal
+    - Square
+    - Braintree
+    - Authorize.Net
+
+    These services handle sensitive card data securely and provide tokenization, ensuring your
+    application never touches raw card numbers, CVV codes, or other sensitive payment data.
+
     ## Authentication
     Some endpoints require authentication using Bearer tokens. Include the JWT token in the Authorization header:
     ```
@@ -122,7 +141,17 @@ paths:
 
     post:
       summary: Create a new order
-      description: Create a new order with order items. No authentication required.
+      description: |
+        Create a new order with order items. No authentication required.
+
+        **Payment Security Notice**: This endpoint accepts mock payment data for demonstration only.
+        For card payments (debit_card/credit_card), you can optionally include:
+        - `payment_transaction_id`: Mock transaction ID
+        - `payment_card_last4`: Last 4 digits (mock data)
+        - `payment_card_type`: Card brand (Visa, Mastercard, etc.)
+
+        ⚠️ **CRITICAL**: This is NOT a secure payment implementation. Never use with real card data.
+        In production, integrate with PCI-DSS compliant payment processors (Stripe, PayPal, Square).
       operationId: createOrder
       tags:
         - Orders
@@ -132,6 +161,47 @@ paths:
           application/json:
             schema:
               $ref: "#/components/schemas/CreateOrderRequest"
+            examples:
+              payAtCounter:
+                summary: Pay at Counter Order
+                value:
+                  order_type: "dine_in"
+                  table_number: "5"
+                  total_amount: 25.48
+                  payment_method: "pay_at_counter"
+                  notes: "No onions please"
+                  items:
+                    - product_id: 1
+                      product_name: "Classic American Burger"
+                      quantity: 2
+                      unit_price: 10.99
+                      subtotal: 21.98
+                    - product_id: 8
+                      product_name: "Coke"
+                      quantity: 1
+                      unit_price: 2.99
+                      subtotal: 2.99
+              mockCardPayment:
+                summary: Mock Card Payment (DEMO ONLY)
+                value:
+                  order_type: "takeout"
+                  customer_name: "John Doe"
+                  total_amount: 15.49
+                  payment_method: "credit_card"
+                  payment_transaction_id: "TXN-1705318200000-ABC123"
+                  payment_card_last4: "4242"
+                  payment_card_type: "Visa"
+                  items:
+                    - product_id: 3
+                      product_name: "Cheesy Burger"
+                      quantity: 1
+                      unit_price: 8.50
+                      subtotal: 8.50
+                    - product_id: 5
+                      product_name: "Classic HotDog"
+                      quantity: 1
+                      unit_price: 6.00
+                      subtotal: 6.00
       responses:
         "201":
           description: Order created successfully
@@ -1012,6 +1082,21 @@ components:
           type: string
           nullable: true
           example: null
+        payment_transaction_id:
+          type: string
+          nullable: true
+          description: Transaction ID from payment processor (mock implementation)
+          example: "TXN-1705318200000-ABC123"
+        payment_card_last4:
+          type: string
+          nullable: true
+          description: Last 4 digits of card (for reference only, mock data)
+          example: "4242"
+        payment_card_type:
+          type: string
+          nullable: true
+          description: Card type/brand (Visa, Mastercard, etc.)
+          example: "Visa"
         notes:
           type: string
           nullable: true
@@ -1063,6 +1148,28 @@ components:
           type: string
           enum: [debit_card, credit_card, pay_at_counter]
           example: "pay_at_counter"
+        payment_transaction_id:
+          type: string
+          nullable: true
+          description: |
+            Transaction ID from mock payment gateway (for card payments only).
+            **WARNING**: This is a MOCK implementation for demonstration purposes only.
+            Never use this with real card data. In production, use a PCI-DSS compliant
+            payment processor like Stripe, PayPal, or Square.
+          example: "TXN-1705318200000-ABC123"
+        payment_card_last4:
+          type: string
+          nullable: true
+          description: |
+            Last 4 digits of card for customer reference (mock data only).
+            **WARNING**: This is demonstration data only. Real implementations
+            should never handle full card numbers directly.
+          example: "4242"
+        payment_card_type:
+          type: string
+          nullable: true
+          description: Card brand/type (Visa, Mastercard, etc.) - mock data only
+          example: "Visa"
         notes:
           type: string
           nullable: true

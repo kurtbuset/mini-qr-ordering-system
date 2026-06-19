@@ -12,6 +12,7 @@ import Products from "./pages/Products/Products";
 import { CartProvider } from "./context/CartContext";
 import Orders from "./pages/Orders/Orders";
 import GenerateQR from "./pages/GenerateQR/GenerateQR";
+import SignUp from "./pages/AuthPages/SignUp";
 
 export default function App() {
   useAuthInit();
@@ -54,6 +55,7 @@ export default function App() {
 
           {/* Auth Layout */}
           <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
 
           {/* Fallback Route */}
           <Route path="*" element={<NotFound />} />

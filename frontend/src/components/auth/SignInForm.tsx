@@ -110,12 +110,12 @@ export default function SignInForm() {
                       Keep me logged in
                     </span>
                   </div>
-                  <Link
+                  {/* <Link
                     to="/reset-password"
                     className="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400"
                   >
                     Forgot password?
-                  </Link>
+                  </Link> */}
                 </div>
                 <div>
                   <Button className="w-full" size="sm" disabled={isLoading}>

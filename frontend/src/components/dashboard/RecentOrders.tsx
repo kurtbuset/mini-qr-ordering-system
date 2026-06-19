@@ -8,8 +8,7 @@ interface RecentOrdersProps {
 }
 
 export const RecentOrders: React.FC<RecentOrdersProps> = ({
-  orders,
-  onOrderClick,
+  orders
 }) => {
   const getStatusBadge = (status: string) => {
     const styles = {
@@ -80,7 +79,6 @@ export const RecentOrders: React.FC<RecentOrdersProps> = ({
             {orders.map((order) => (
               <div
                 key={order.id}
-                onClick={() => onOrderClick?.(order)}
                 className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-200 p-4 transition-all hover:border-brand-300 hover:shadow-md dark:border-gray-700 dark:hover:border-brand-600"
               >
                 <div className="flex items-center space-x-4">

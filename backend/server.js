@@ -8,6 +8,7 @@ import bodyParser from "body-parser";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import errorHandler from "./_middleware/error-handler.js";
+import socketAuthorize from "./_middleware/socket-authorize.js";
 import accountsController from "./accounts/accounts.controller.js";
 import productsController from "./products/product.controller.js";
 import ordersController from "./orders/order.controller.js";
@@ -37,7 +38,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-// CORS configuration - only allow requests from env.FRONTEND_URL
+// only allow requests from env.FRONTEND_URL
 const allowedOrigins = process.env.FRONTEND_URL;
 
 app.use(
@@ -75,26 +76,25 @@ app.use("/api-docs", swagger);
 // global error handler
 app.use(errorHandler);
 
+// Socket.IO authentication middleware
+io.use(socketAuthorize);
+
 // Socket.IO connection handling
 io.on("connection", (socket) => {
-  console.log("Client connected:", socket.id);
+  console.log(
+    `Client connected: ${socket.id} - User: ${socket.user.email} (${socket.user.role})`,
+  );
 
-  // Join admin room when user authenticates
-  socket.on("joinAdminRoom", (data) => {
-    if (data.role === "Admin") {
-      socket.join("admin");
-      console.log(`Admin joined room: ${socket.id}`);
-    }
-  });
-
-  // Leave admin room
-  socket.on("leaveAdminRoom", () => {
-    socket.leave("admin");
-    console.log(`User left admin room: ${socket.id}`);
-  });
+  // Auto-join admin room if user is Admin (backend verifies role)
+  if (socket.user.role === "Admin") {
+    socket.join("admin");
+    console.log(`Admin auto-joined room: ${socket.id} - ${socket.user.email}`);
+  }
 
   socket.on("disconnect", () => {
-    console.log("Client disconnected:", socket.id);
+    console.log(
+      `Client disconnected: ${socket.id} - User: ${socket.user.email} (${socket.user.role})`,
+    );
   });
 });
 

@@ -9,6 +9,7 @@ export default {
   authenticate,
   refreshToken,
   revokeToken,
+  register,
   forgotPassword,
   validateResetToken,
   resetPassword,
@@ -125,6 +126,29 @@ async function getAll() {
 
 async function getById(id) {
   const account = await getAccount(id);
+  return basicDetails(account);
+}
+
+async function register(params) {
+  // validate
+  if (await db.Account.findOne({ where: { email: params.email } })) {
+    throw 'Email "' + params.email + '" is already registered';
+  }
+
+  const account = new db.Account({
+    firstName: params.firstName,
+    lastName: params.lastName,
+    email: params.email,
+    role: Role.Admin,
+  });
+  account.verified = Date.now();
+
+  // hash password
+  account.passwordHash = await hash(params.password);
+
+  // save account
+  await account.save();
+
   return basicDetails(account);
 }
 

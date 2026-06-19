@@ -5,6 +5,7 @@ export const authService = {
   login,
   logout,
   refreshToken,
+  register,
 };
 
 async function login(email: string, password: string): Promise<Account> {
@@ -30,5 +31,20 @@ async function refreshToken(): Promise<Account> {
     {},
     { skipAuth: true },
   );
+  return response;
+}
+
+interface RegisterData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
+async function register(data: RegisterData): Promise<Account> {
+  const response = await apiClient.post<Account>("/accounts/register", data, {
+    skipAuth: true,
+  });
   return response;
 }

@@ -1,16 +1,78 @@
+import { useState, useEffect } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { useAuthStore } from "../../store/authStore";
+import { accountService } from "../../services/accountService";
+import { useToastStore } from "../../store/toastStore";
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  const account = useAuthStore((state) => state.account);
+  const setAccount = useAuthStore((state) => state.setAccount);
+  const addToast = useToastStore((state) => state.addToast);
+
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (account) {
+      setFormData({
+        firstName: account.firstName || "",
+        lastName: account.lastName || "",
+        email: account.email || "",
+      });
+    }
+  }, [account]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!account) return;
+
+    setIsSubmitting(true);
+    try {
+      const updatedAccount = await accountService.update(account.id, formData);
+
+      // Update the account in the store with merged data
+      setAccount({
+        ...account,
+        ...updatedAccount,
+      });
+
+      addToast({
+        variant: "success",
+        title: "Success",
+        message: "Profile updated successfully",
+      });
+      closeModal();
+    } catch (error: any) {
+      console.error("Update error:", error);
+      addToast({
+        variant: "error",
+        title: "Error",
+        message: error.message || "Failed to update profile",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!account) return null;
+
   return (
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -25,7 +87,7 @@ export default function UserInfoCard() {
                 First Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Musharof
+                {account.firstName}
               </p>
             </div>
 
@@ -34,7 +96,7 @@ export default function UserInfoCard() {
                 Last Name
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Chowdhury
+                {account.lastName}
               </p>
             </div>
 
@@ -43,25 +105,16 @@ export default function UserInfoCard() {
                 Email address
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                randomuser@pimjo.com
+                {account.email}
               </p>
             </div>
 
             <div>
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Phone
+                Role
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                +09 363 398 46
-              </p>
-            </div>
-
-            <div>
-              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                Bio
-              </p>
-              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                Team Manager
+                {account.role}
               </p>
             </div>
           </div>
@@ -100,42 +153,9 @@ export default function UserInfoCard() {
               Update your details to keep your profile up-to-date.
             </p>
           </div>
-          <form className="flex flex-col">
-            <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
+          <form onSubmit={handleSave} className="flex flex-col">
+            <div className="custom-scrollbar h-[350px] overflow-y-auto px-2 pb-3">
               <div>
-                <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
-                  Social Links
-                </h5>
-
-                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                  <div>
-                    <Label>Facebook</Label>
-                    <Input
-                      type="text"
-                      value="https://www.facebook.com/PimjoHQ"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>X.com</Label>
-                    <Input type="text" value="https://x.com/PimjoHQ" />
-                  </div>
-
-                  <div>
-                    <Label>Linkedin</Label>
-                    <Input
-                      type="text"
-                      value="https://www.linkedin.com/company/pimjo"
-                    />
-                  </div>
-
-                  <div>
-                    <Label>Instagram</Label>
-                    <Input type="text" value="https://instagram.com/PimjoHQ" />
-                  </div>
-                </div>
-              </div>
-              <div className="mt-7">
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                   Personal Information
                 </h5>
@@ -143,37 +163,51 @@ export default function UserInfoCard() {
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
                     <Label>First Name</Label>
-                    <Input type="text" value="Musharof" />
+                    <Input
+                      type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Last Name</Label>
-                    <Input type="text" value="Chowdhury" />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Email Address</Label>
-                    <Input type="text" value="randomuser@pimjo.com" />
-                  </div>
-
-                  <div className="col-span-2 lg:col-span-1">
-                    <Label>Phone</Label>
-                    <Input type="text" value="+09 363 398 46" />
+                    <Input
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                    />
                   </div>
 
                   <div className="col-span-2">
-                    <Label>Bio</Label>
-                    <Input type="text" value="Team Manager" />
+                    <Label>Email Address</Label>
+                    <Input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                    />
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={closeModal}
+                disabled={isSubmitting}
+              >
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button
+                size="sm"
+                onClick={() => handleSave({} as React.FormEvent)}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>

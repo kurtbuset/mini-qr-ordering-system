@@ -26,16 +26,29 @@ export default function Orders() {
   useEffect(() => {
     loadOrders();
 
-    // Initialize Socket.IO connection
+    // Only connect to socket if user is authenticated
+    if (!account || !account.jwtToken) {
+      console.log("No authenticated user, skipping socket connection");
+      return;
+    }
+
+    // Initialize Socket.IO connection with JWT authentication
     const socket = io(SOCKET_URL, {
       transports: ["websocket", "polling"],
+      auth: {
+        token: account.jwtToken, // Send JWT token for backend verification
+      },
     });
 
-    // Join admin room if user is admin
-    if (account && account.role === "Admin") {
-      socket.emit("joinAdminRoom", { role: account.role });
-      console.log("Joined admin room");
-    }
+    // Handle authentication errors
+    socket.on("connect_error", (error) => {
+      console.error("Socket connection error:", error.message);
+    });
+
+    socket.on("connect", () => {
+      console.log("Socket connected successfully:", socket.id);
+      // Backend now auto-joins admin room if user role is Admin
+    });
 
     // Listen for new orders (only admins will receive this)
     socket.on("newOrder", (newOrder: Order) => {
@@ -68,12 +81,9 @@ export default function Orders() {
 
     // Cleanup on unmount
     return () => {
-      if (account && account.role === "Admin") {
-        socket.emit("leaveAdminRoom");
-      }
       socket.disconnect();
     };
-  }, [account]);
+  }, [account?.jwtToken]); // Re-connect if token changes
 
   const loadOrders = async () => {
     try {

@@ -11,6 +11,7 @@ const router = express.Router();
 router.post("/authenticate", authenticateSchema, authenticate);
 router.post("/refresh-token", refreshToken);
 router.post("/revoke-token", revokeTokenSchema, revokeToken);
+router.post("/register", registerSchema, register);
 router.post(
   "/validate-reset-token",
   validateResetTokenSchema,
@@ -54,6 +55,24 @@ function refreshToken(req, res, next) {
       setTokenCookie(res, refreshToken);
       res.json(account);
     })
+    .catch(next);
+}
+
+function registerSchema(req, res, next) {
+  const schema = Joi.object({
+    firstName: Joi.string().required(),
+    lastName: Joi.string().required(),
+    email: Joi.string().email().required(),
+    password: Joi.string().min(6).required(),
+    confirmPassword: Joi.string().valid(Joi.ref("password")).required(),
+  });
+  validateRequest(req, next, schema);
+}
+
+function register(req, res, next) {
+  accountService
+    .register(req.body)
+    .then((account) => res.json(account))
     .catch(next);
 }
 
@@ -153,7 +172,6 @@ function create(req, res, next) {
 
 function updateSchema(req, res, next) {
   const schemaRules = {
-    title: Joi.string().empty(""),
     firstName: Joi.string().empty(""),
     lastName: Joi.string().empty(""),
     email: Joi.string().email().empty(""),
@@ -163,7 +181,7 @@ function updateSchema(req, res, next) {
 
   // only admins can update role
   if (req.user.role === Role.Admin) {
-    schemaRules.role = Joi.string().valid(Role.Admin, Role.User).empty("");
+    schemaRules.role = Joi.string().valid(Role.Admin).empty("");
   }
 
   const schema = Joi.object(schemaRules).with("password", "confirmPassword");

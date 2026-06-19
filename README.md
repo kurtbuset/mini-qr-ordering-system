@@ -59,7 +59,7 @@ Edit `backend/.env` with your settings:
 
 ```env
 NODE_ENV=development
-PORT=4000
+PORT=5000
 
 # Database (Docker MySQL service)
 DB_HOST=mysql
@@ -84,7 +84,7 @@ cd ../frontend
 Create `frontend/.env`:
 
 ```env
-VITE_API_URL=http://localhost:4000
+VITE_API_URL=http://localhost:5000
 ```
 
 #### Step 3: Start All Services
@@ -100,7 +100,7 @@ This will start:
 
 - **MySQL Database** (port 3306)
 - **phpMyAdmin** (port 8080)
-- **Backend API** (port 4000)
+- **Backend API** (port 5000)
 - **Frontend App** (port 5173)
 
 #### Step 4: Initialize Database
@@ -121,8 +121,8 @@ This creates:
 #### Step 5: Access the Application
 
 - **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:4000
-- **API Docs**: http://localhost:4000/api-docs
+- **Backend API**: http://localhost:5000
+- **API Docs**: http://localhost:5000/api-docs
 - **phpMyAdmin**: http://localhost:8080 (username: `root`, password: `root_password`)
 
 #### Step 6: Login
