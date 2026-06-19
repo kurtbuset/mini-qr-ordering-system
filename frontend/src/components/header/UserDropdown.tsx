@@ -37,9 +37,6 @@ export default function UserDropdown() {
     : "User";
   const displayEmail = account?.email || "user@example.com";
   const displayRole = account?.role || "Guest";
-  const initials = account
-    ? `${account.firstName.charAt(0)}${account.lastName.charAt(0)}`
-    : "U";
 
   return (
     <div className="relative">
@@ -51,7 +48,9 @@ export default function UserDropdown() {
           <img src="/images/user/owner.jpg" alt="User" />
         </span>
 
-        <span className="block mr-1 font-medium text-theme-sm">{displayName}</span>
+        <span className="block mr-1 font-medium text-theme-sm">
+          {displayName}
+        </span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
@@ -79,10 +78,10 @@ export default function UserDropdown() {
       >
         <div>
           <span className="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-            { displayName }
+            {displayName}
           </span>
           <span className="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-            { displayEmail}
+            {displayEmail}
           </span>
           <span className="mt-1 inline-block px-2 py-0.5 text-xs font-medium rounded-md bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400">
             {displayRole}

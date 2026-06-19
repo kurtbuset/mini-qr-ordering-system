@@ -8,8 +8,11 @@ import {
   GridIcon,
   HorizontaLDots,
   ListIcon,
+  UserIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
+import { useAuthStore } from "../store/authStore";
+import { Role } from "../types/role";
 
 type NavItem = {
   name: string;
@@ -36,6 +39,14 @@ const navItems: NavItem[] = [
   },
 ];
 
+const adminItems: NavItem[] = [
+  {
+    icon: <UserIcon />,
+    name: "Accounts",
+    path: "/accounts",
+  },
+];
+
 // const othersItems: NavItem[] = [
 //   {
 //     icon: <PieChartIcon />,
@@ -50,6 +61,8 @@ const navItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
+  const account = useAuthStore((state) => state.account);
+  const isAdmin = account?.role === Role.Admin;
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -320,6 +333,24 @@ const AppSidebar: React.FC = () => {
               </h2>
               {renderMenuItems(navItems, "main")}
             </div>
+            {isAdmin && (
+              <div>
+                <h2
+                  className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
+                    !isExpanded && !isHovered
+                      ? "lg:justify-center"
+                      : "justify-start"
+                  }`}
+                >
+                  {isExpanded || isHovered || isMobileOpen ? (
+                    "Admin"
+                  ) : (
+                    <HorizontaLDots className="size-6" />
+                  )}
+                </h2>
+                {renderMenuItems(adminItems, "main")}
+              </div>
+            )}
             <div className="">
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Modal } from "../../ui/modal";
 import { Order } from "../../../types/order";
+import { useToastStore } from "../../../store/toastStore";
 
 interface OrderDetailModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   onUpdatePaymentStatus,
 }) => {
   const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
+  const addToast = useToastStore((state) => state.addToast);
 
   const formatCurrency = (amount: number) => {
     return `P${Number(amount).toFixed(2)}`;
@@ -51,7 +53,21 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
   const handleCompleteOrder = () => {
     if (!order) return;
     if (window.confirm(`Mark order #${order.order_number} as completed?`)) {
-      onUpdateStatus(order.id, "completed");
+      try {
+        onUpdateStatus(order.id, "completed");
+        addToast({
+          variant: "success",
+          title: "Order Completed",
+          message: `Order #${order.order_number} has been marked as completed.`,
+        });
+      } catch (error) {
+        addToast({
+          variant: "error",
+          title: "Failed to Complete Order",
+          message:
+            "An error occurred while completing the order. Please try again.",
+        });
+      }
     }
   };
 
@@ -62,7 +78,21 @@ export const OrderDetailModal: React.FC<OrderDetailModalProps> = ({
         `Are you sure you want to cancel order #${order.order_number}? This action cannot be undone.`,
       )
     ) {
-      onUpdateStatus(order.id, "cancelled");
+      try {
+        onUpdateStatus(order.id, "cancelled");
+        addToast({
+          variant: "error",
+          title: "Order Cancelled",
+          message: `Order #${order.order_number} has been cancelled.`,
+        });
+      } catch (error) {
+        addToast({
+          variant: "error",
+          title: "Failed to Cancel Order",
+          message:
+            "An error occurred while cancelling the order. Please try again.",
+        });
+      }
     }
   };
 

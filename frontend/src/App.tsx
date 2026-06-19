@@ -13,6 +13,8 @@ import { CartProvider } from "./context/CartContext";
 import Orders from "./pages/Orders/Orders";
 import GenerateQR from "./pages/GenerateQR/GenerateQR";
 import SignUp from "./pages/AuthPages/SignUp";
+import AccountsManagement from "./pages/Accounts/AccountsManagement";
+import { Role } from "./types/role";
 
 export default function App() {
   useAuthInit();
@@ -41,14 +43,15 @@ export default function App() {
 
             <Route path="/generate-qr" element={<GenerateQR />} />
 
-            {/* <Route
+            {/* Accounts Management - Admin only */}
+            <Route
               path="/accounts"
               element={
                 <ProtectedRoute roles={[Role.Admin]}>
                   <AccountsManagement />
                 </ProtectedRoute>
               }
-            /> */}
+            />
           </Route>
 
           <Route path="/products" element={<Products />} />

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { X, CreditCard, Lock, AlertCircle } from "lucide-react";
+import { useToastStore } from "../../store/toastStore";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export default function PaymentModal({
   const [cvv, setCvv] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState("");
+  const addToast = useToastStore((state) => state.addToast);
 
   if (!isOpen) return null;
 
@@ -170,6 +172,14 @@ export default function PaymentModal({
           "Transaction limit exceeded",
         ];
         const randomError = errors[Math.floor(Math.random() * errors.length)];
+
+        // Show toast notification for payment failure
+        addToast({
+          variant: "error",
+          title: "Payment Failed",
+          message: randomError,
+        });
+
         onPaymentFailed(randomError);
       }
     } catch (err) {
