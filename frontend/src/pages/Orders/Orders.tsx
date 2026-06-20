@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { useEffect, useState, useCallback } from "react";
 import { orderService } from "../../services/orderService";
 import { Order } from "../../types/order";
 import {
@@ -8,11 +7,9 @@ import {
   OrderDetailModal,
 } from "../../components/order";
 import PageMeta from "../../components/common/PageMeta";
-import { useAuthStore } from "../../store/authStore";
+import { useOrderSocket } from "../../hooks/useOrderSocket";
 
 type OrderTypeFilter = "all" | "dine_in" | "takeout";
-
-const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:4000";
 
 export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -21,53 +18,24 @@ export default function Orders() {
   const [typeFilter, setTypeFilter] = useState<OrderTypeFilter>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const account = useAuthStore((state) => state.account);
 
-  useEffect(() => {
-    loadOrders();
-
-    // Only connect to socket if user is authenticated
-    if (!account || !account.jwtToken) {
-      console.log("No authenticated user, skipping socket connection");
-      return;
+  // handle new order from socket (mutating list)
+  const handleNewOrder = useCallback((newOrder: Order) => {
+    // Only add if it's a pending order
+    if (newOrder.order_status === "pending") {
+      setOrders((prevOrders) => [newOrder, ...prevOrders]);
     }
+  }, []);
 
-    // Initialize Socket.IO connection with JWT authentication
-    const socket = io(SOCKET_URL, {
-      transports: ["websocket", "polling"],
-      auth: {
-        token: account.jwtToken, // Send JWT token for backend verification
-      },
-    });
-
-    // Handle authentication errors
-    socket.on("connect_error", (error) => {
-      console.error("Socket connection error:", error.message);
-    });
-
-    socket.on("connect", () => {
-      console.log("Socket connected successfully:", socket.id);
-      // Backend now auto-joins admin room if user role is Admin
-    });
-
-    // Listen for new orders (only admins will receive this)
-    socket.on("newOrder", (newOrder: Order) => {
-      console.log("New order received:", newOrder);
-      // Only add if it's a pending order
-      if (newOrder.order_status === "pending") {
-        setOrders((prevOrders) => [newOrder, ...prevOrders]);
-      }
-    });
-
-    // Listen for order updates (only admins will receive this)
-    socket.on("orderUpdated", (updatedOrder: Order) => {
-      console.log("Order updated:", updatedOrder);
+  // handle order update from socket (mutating list)
+  const handleOrderUpdated = useCallback(
+    (updatedOrder: Order) => {
       setOrders((prevOrders) => {
-        // If order is no longer pending, remove it from the list
+        // if order is no longer pending, remove it from the list
         if (updatedOrder.order_status !== "pending") {
           return prevOrders.filter((order) => order.id !== updatedOrder.id);
         }
-        // Otherwise, update the order in the list
+        // else, update the order in the list
         return prevOrders.map((order) =>
           order.id === updatedOrder.id ? updatedOrder : order,
         );
@@ -77,20 +45,28 @@ export default function Orders() {
       if (selectedOrder && selectedOrder.id === updatedOrder.id) {
         setSelectedOrder(updatedOrder);
       }
-    });
+    },
+    [selectedOrder],
+  );
 
-    // Cleanup on unmount
-    return () => {
-      socket.disconnect();
-    };
-  }, [account?.jwtToken]); // Re-connect if token changes
+  // initialize socket connection for real-time updates in receiving orders
+  useOrderSocket({
+    onNewOrder: handleNewOrder,
+    onOrderUpdated: handleOrderUpdated,
+  });
 
+  // fetching orders
+  useEffect(() => {
+    loadOrders();
+  }, []);
+
+  // fetching orders data in server
   const loadOrders = async () => {
     try {
       setIsLoading(true);
       setError(null);
       const data = await orderService.getAllOrders();
-      // Only show pending orders
+      // only show pending orders
       const pendingOrders = data.filter(
         (order) => order.order_status === "pending",
       );
@@ -103,24 +79,26 @@ export default function Orders() {
     }
   };
 
-  // Filter orders by type
+  // filter orders by type
   const filteredOrders = orders.filter((order) => {
     if (typeFilter === "all") return true;
     return order.order_type === typeFilter;
   });
 
+  // when order is clicked, opens the order detail modal 
   const handleOrderClick = (order: Order) => {
     setSelectedOrder(order);
     setIsModalOpen(true);
   };
 
+  // updates order status
   const handleUpdateStatus = async (
     orderId: number,
     status: "completed" | "cancelled",
   ) => {
     try {
       await orderService.updateOrder(orderId, { order_status: status });
-      // Remove order from list
+      // remove order from list
       setOrders(orders.filter((order) => order.id !== orderId));
       setIsModalOpen(false);
       setSelectedOrder(null);
@@ -130,6 +108,7 @@ export default function Orders() {
     }
   };
 
+  // update payment status 
   const handleUpdatePaymentStatus = async (
     orderId: number,
     paymentStatus: "paid" | "failed",
@@ -138,9 +117,7 @@ export default function Orders() {
       await orderService.updateOrder(orderId, {
         payment_status: paymentStatus,
       });
-      // Reload orders to reflect changes
-      await loadOrders();
-      // Update selectedOrder to reflect changes in modal immediately
+      // update the selectedOrder to reflect changes in modal immediately
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder({
           ...selectedOrder,
@@ -153,11 +130,13 @@ export default function Orders() {
     }
   };
 
+  // get counts per category
   const getCategoryCount = (type: OrderTypeFilter) => {
     if (type === "all") return orders.length;
     return orders.filter((o) => o.order_type === type).length;
   };
 
+  // object for counts per category
   const filterCounts = {
     all: getCategoryCount("all"),
     dine_in: getCategoryCount("dine_in"),
@@ -189,7 +168,7 @@ export default function Orders() {
         description="Manage and track customer orders for dine-in and takeout"
       />
 
-      {/* Header */}
+      {/* header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
@@ -203,14 +182,14 @@ export default function Orders() {
         </div>
       </div>
 
-      {/* Category Filters */}
+      {/* category filters */}
       <OrderFilters
         selectedFilter={typeFilter}
         onFilterChange={setTypeFilter}
         counts={filterCounts}
       />
 
-      {/* Orders Grid */}
+      {/* orders grid */}
       <OrdersGrid orders={filteredOrders} onOrderClick={handleOrderClick} />
 
       {/* Order Detail Modal */}

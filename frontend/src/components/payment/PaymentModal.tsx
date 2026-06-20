@@ -66,10 +66,10 @@ export default function PaymentModal({
   // Detect card type
   const getCardType = (number: string) => {
     const cleaned = number.replace(/\s/g, "");
-    if (/^4/.test(cleaned)) return "Visa";
-    if (/^5[1-5]/.test(cleaned)) return "Mastercard";
-    if (/^3[47]/.test(cleaned)) return "Amex";
-    if (/^6(?:011|5)/.test(cleaned)) return "Discover";
+    if (/^4/.test(cleaned)) return "Visa";                    // Visa == card starts with 4
+    if (/^5[1-5]/.test(cleaned)) return "Mastercard";         // Mastercard == card start with 51 to 55
+    if (/^3[47]/.test(cleaned)) return "Amex";                // Amex == card starts with 34 and 47
+    if (/^6(?:011|5)/.test(cleaned)) return "Discover";       // Discover == 6011 or 65
     return "Card";
   };
 
@@ -97,6 +97,7 @@ export default function PaymentModal({
     }
   };
 
+  // card validation (cardNumber, cardName, expiryDate)
   const validateCard = () => {
     const cleanedCardNumber = cardNumber.replace(/\s/g, "");
 
@@ -121,11 +122,13 @@ export default function PaymentModal({
     const currentYear = new Date().getFullYear();
     const currentMonth = new Date().getMonth() + 1;
 
+    // return false if month is less than 1 or greater than 12
     if (month < 1 || month > 12) {
       setError("Invalid expiry month");
       return false;
     }
 
+    // return false if year is less than current year 
     if (year < currentYear || (year === currentYear && month < currentMonth)) {
       setError("Card has expired");
       return false;
@@ -149,8 +152,9 @@ export default function PaymentModal({
       // delay 2 seconds to simulate real transaction
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Mock payment gateway response
+      // Mock payment gateway response (generate random number from 0.0 up to 0.999)
       // 90% success rate for testing
+      // return false if success is less than 0.1
       const isSuccess = Math.random() > 0.1;
 
       if (isSuccess) {

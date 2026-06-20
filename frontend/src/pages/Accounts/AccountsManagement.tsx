@@ -6,8 +6,8 @@ import { useAuthStore } from "../../store/authStore";
 import Button from "../../components/ui/button/Button";
 import { Modal } from "../../components/ui/modal";
 import { useModal } from "../../hooks/useModal";
-import AccountForm from "../../components/Accounts/AccountForm";
-import DeleteAccountModal from "../../components/Accounts/DeleteAccountModal";
+import AccountForm from "../../components/accounts/AccountForm";
+import DeleteAccountModal from "../../components/accounts/DeleteAccountModal";
 
 export default function AccountsManagement() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -29,10 +29,12 @@ export default function AccountsManagement() {
   const addToast = useToastStore((state) => state.addToast);
   const currentAccount = useAuthStore((state) => state.account);
 
+  // loads accounts data when component mounts
   useEffect(() => {
     loadAccounts();
   }, []);
 
+  // fetching accounts data in server
   const loadAccounts = async () => {
     try {
       setIsLoading(true);
@@ -49,21 +51,25 @@ export default function AccountsManagement() {
     }
   };
 
+  // handle create modal
   const handleCreateNew = () => {
     setSelectedAccount(null);
     openFormModal();
   };
 
+  // handle edit modal
   const handleEdit = (account: Account) => {
     setSelectedAccount(account);
     openFormModal();
   };
 
+  // method for deleting account
   const handleDeleteClick = (account: Account) => {
     setAccountToDelete(account);
     openDeleteModal();
   };
 
+  // calling delete method in account service
   const handleDeleteConfirm = async () => {
     if (!accountToDelete) return;
 
@@ -86,6 +92,7 @@ export default function AccountsManagement() {
     }
   };
 
+  // when success, close modal, set selected account to null then load accounts data
   const handleFormSuccess = () => {
     closeFormModal();
     setSelectedAccount(null);
@@ -119,7 +126,7 @@ export default function AccountsManagement() {
         </Button>
       </div>
 
-      {/* Accounts Table */}
+      {/* accounts table */}
       <div className="overflow-hidden bg-white border border-gray-200 rounded-2xl dark:bg-gray-900 dark:border-gray-800">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -243,7 +250,7 @@ export default function AccountsManagement() {
         </div>
       </div>
 
-      {/* Create/Edit Modal */}
+      {/* create/edit Modal */}
       <Modal
         isOpen={isFormOpen}
         onClose={closeFormModal}
@@ -256,7 +263,7 @@ export default function AccountsManagement() {
         />
       </Modal>
 
-      {/* Delete Confirmation Modal */}
+      {/* delete confirmation modal */}
       <DeleteAccountModal
         isOpen={isDeleteOpen}
         account={accountToDelete}

@@ -17,10 +17,12 @@ export default function Products() {
   const [selectedCategory, setSelectedCategory] =
     useState<ProductCategory>("All");
 
+  // fetch products data when component mounts 
   useEffect(() => {
     loadProducts();
   }, []);
 
+  // fetch all products in server
   const loadProducts = async () => {
     try {
       setLoading(true);
@@ -34,11 +36,13 @@ export default function Products() {
     }
   };
 
+  // filtered the products  
   const filteredProducts =
     selectedCategory === "All"
       ? products
       : products.filter((p) => p.category === selectedCategory);
 
+  // counts per category
   const getCategoryCount = (category: ProductCategory) => {
     if (category === "All") return products.length;
     return products.filter((p) => p.category === category).length;
@@ -52,7 +56,7 @@ export default function Products() {
       />
 
       <div className="mx-auto max-w-7xl p-3">
-        {/* Header */}
+        {/* header */}
         <div className="mb-8">
           <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
             Our Menu
@@ -62,7 +66,7 @@ export default function Products() {
           </p>
         </div>
 
-        {/* Category Filter */}
+        {/* category filter */}
         <div className="mb-8">
           <div className="flex flex-wrap gap-3">
             {PRODUCT_CATEGORIES.map((category) => (
@@ -84,14 +88,14 @@ export default function Products() {
           </div>
         </div>
 
-        {/* Loading State */}
+        {/* loading State */}
         {loading && (
           <div className="flex items-center justify-center py-20">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-200 border-t-brand-500"></div>
           </div>
         )}
 
-        {/* Error State */}
+        {/* error state */}
         {error && (
           <div className="rounded-lg bg-red-50 p-6 dark:bg-red-900/20">
             <div className="flex items-center">
@@ -126,7 +130,7 @@ export default function Products() {
           </div>
         )}
 
-        {/* Products Grid */}
+        {/* products grid */}
         {!loading && !error && (
           <>
             {filteredProducts.length === 0 ? (
@@ -159,10 +163,10 @@ export default function Products() {
         )}
       </div>
 
-      {/* Floating Cart Button */}
+      {/* floating cart button (bottom right side) */}
       <CartButton />
 
-      {/* Cart Modal */}
+      {/* cart modal */}
       <CartModal />
     </>
   );

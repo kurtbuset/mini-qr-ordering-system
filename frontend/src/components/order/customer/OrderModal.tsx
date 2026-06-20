@@ -25,15 +25,16 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose }) => {
   >("pay_at_counter");
   const [notes, setNotes] = useState("");
 
-  // Payment modal state
+  // payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [pendingOrderData, setPendingOrderData] =
     useState<CreateOrderRequest | null>(null);
 
-  // Success modal state
+  // success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
 
+  // reset form 
   const resetForm = () => {
     setOrderType("dine_in");
     setTableNumber("");
@@ -43,6 +44,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose }) => {
     setError("");
   };
 
+  // when modal close, resets form
   const handleClose = () => {
     resetForm();
     onClose();
@@ -58,7 +60,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose }) => {
     e.preventDefault();
     setError("");
 
-    // Validate
+    // validate
     if (orderType === "dine_in" && !tableNumber.trim()) {
       setError("Table number is required for dine-in orders");
       return;
@@ -69,7 +71,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose }) => {
       return;
     }
 
-    // Prepare order data
+    // prepare order data
     const orderData: CreateOrderRequest = {
       order_type: orderType,
       total_amount: cart.totalAmount,
@@ -101,7 +103,7 @@ export const OrderModal: React.FC<OrderModalProps> = ({ isOpen, onClose }) => {
       await submitOrder(orderData);
     }
   };
-
+  
   const submitOrder = async (
     orderData: CreateOrderRequest,
     paymentData?: PaymentResult,
